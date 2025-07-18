@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Secure PII</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css">
+    <!-- Bootstrap -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.2.1/css/bootstrap.min.css" rel="stylesheet">
+    <!-- MDB -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.7.3/css/mdb.min.css" rel="stylesheet">
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+
+    <style>
+        .main-section {
+            margin: 0 auto;
+            padding: 20px;
+            margin-top: 100px;
+            background-color: #fff;
+            box-shadow: 0px 0px 20px #c1c1c1;
+        }
+
+        footer {
+            background-color: #1e1e2f;
+            color: #ffffff;
+            padding: 20px 0;
+            text-align: center;
+        }
+
+        .content-wrapper {
+            padding: 30px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+    <a class="navbar-brand" href="/">EdgeFusion</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item active"><a class="nav-link" href="/">Home</a></li>
+        </ul>
+
+        <ul class="navbar-nav ml-auto">
+            {% if session.username %}
+                <li class="nav-item text-white mt-2 mr-3">Welcome, {{ session.username }}</li>
+                <li class="nav-item">
+                    <a class="btn btn-outline-light btn-sm" href="{{ url_for('logout') }}">Logout</a>
+                </li>
+            {% else %}
+                <li class="nav-item">
+                    <a class="btn btn-outline-light btn-sm mr-2" href="{{ url_for('login') }}">Login</a>
+                </li>
+                <li class="nav-item">
+                    <a class="btn btn-success btn-sm" href="{{ url_for('signup') }}">Signup</a>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
+</nav>
+
+<!-- Jumbotron -->
+<div class="jumbotron" style="background: #1e1e2f; color: #fff; margin-top: 60px;">
+    <div class="container">
+        <h2 class="display-4">Secure PDF Redactor</h2>
+        <p>Powered by Spacy, Regex, Pytesseract & Gemini AI</p>
+    </div>
+</div>
+
+<div class="container content-wrapper">
+    <h3 class="mt-4">PII Detection via Gemini</h3>
+    <input type="file" id="pdfUpload" accept="application/pdf" />
+    <button onclick="extractPdfText()" class="btn btn-secondary btn-sm">Extract PDF Text</button>
+
+    <textarea id="pdfText" placeholder="Extracted PDF text will appear here..."></textarea>
+
+    <button onclick="analyzeWithGemini()" class="btn btn-primary btn-sm">Analyze with Gemini</button>
+
+    <h5 class="mt-3">Gemini Response:</h5>
+    <pre id="geminiResponse" style="white-space: pre-wrap; background-color: #f1f1f1; padding: 10px;"></pre>
+
+    <br>
+    <label for="dataType">Select Redaction Type:</label>
+    <select id="dataType" name="dataType" onchange="toggleCustomOptions()" required>
+        <option selected disabled>Select Redaction Type</option>
+        <option value="default">Default (Redact All)</option>
+        <option value="custom">Customize</option>
+    </select>
+    <br>
+    <button type="submit" class="btn btn-info"><i class="fa fa-database"></i> Submit for Redaction</button>
+</div>
+
+<!-- Footer -->
+<footer>
+    <p>&copy; <span id="year"></span> EdgeFusion. All rights reserved.</p>
+</footer>
+
+<script>
+    async function analyzeWithGemini() {
+      const text = document.getElementById("pdfText").value;
+      const responseBox = document.getElementById("geminiResponse");
+      const optionsBox = document.getElementById("custom-options");
+  
+      const response = await fetch("/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
+  
+      const data = await response.json();
+      responseBox.textContent = ""; // Clear old output
+      optionsBox.innerHTML = ""; // Clear old checkboxes
+  
+      if (data.json) {
+        // Pretty print JSON
+        responseBox.textContent = JSON.stringify(data.json, null, 2);
+  
+        // Dynamically create checkboxes for each PII key
+        Object.keys(data.json).forEach(key => {
+          const label = document.createElement("label");
+          label.innerHTML = `<input type="checkbox" name="custom_types" value="${key}"> ${key.charAt(0).toUpperCase() + key.slice(1)}`;
+          optionsBox.appendChild(label);
+          optionsBox.appendChild(document.createElement("br"));
+        });
+  
+        // Show the section if "custom" is selected
+        if (document.getElementById("dataType").value === "custom") {
+          optionsBox.style.display = "block";
+        }
+      } else {
+        responseBox.textContent = data.error || "Something went wrong";
+      }
+    }
+  </script>
+  
+<!-- JS Dependencies -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.4/umd/popper.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.2.1/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.7.3/js/mdb.min.js"></script>
+
+</body>
+</html>
