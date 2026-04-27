@@ -2,7 +2,7 @@
 
 ## Prerequisites 
 Python 3.7 - 3.12 (above or below that, spaCy is not compatible yet)
-
+ 
 
 - #### pyenv can be used to manage Python versions.
 
